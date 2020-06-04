@@ -17,16 +17,12 @@ import { KeycloakConnectOptions } from '../interface/keycloak-connect-options.in
 export class AuthGuard implements CanActivate {
   constructor(
     @Inject(KEYCLOAK_INSTANCE)
-    private keycloak: Keycloak,
-    @Inject(KEYCLOAK_CONNECT_OPTIONS)
-    private keycloakOpts: KeycloakConnectOptions,
+    private keycloak: Keycloak
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const jwt =
-      this.extractJwtFromCookie(request.cookies) ??
-      this.extractJwt(request.headers);
+    const jwt = this.extractJwt(request.headers);
     const result = await this.keycloak.grantManager.validateAccessToken(jwt);
 
     if (typeof result === 'string') {
@@ -53,7 +49,4 @@ export class AuthGuard implements CanActivate {
     return auth[1];
   }
 
-  extractJwtFromCookie(cookies: { [key: string]: string }) {
-    return cookies[this.keycloakOpts.cookieKey] || cookies.KEYCLOAK_JWT;
-  }
 }
