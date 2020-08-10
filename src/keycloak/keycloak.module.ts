@@ -2,6 +2,7 @@ import { DynamicModule, Module, Provider } from '@nestjs/common';
 import * as Keycloak from 'keycloak-connect';
 import { KEYCLOAK_CONNECT_OPTIONS, KEYCLOAK_INSTANCE } from './constants';
 import { KeycloakConnectOptions } from './interface/keycloak-connect-options.interface';
+import { ConfigModule, ConfigService } from 'src/config';
 
 export * from './decorators/resource.decorator';
 export * from './decorators/scopes.decorator';
@@ -11,14 +12,14 @@ export * from './constants';
 
 @Module({})
 export class KeycloakModule {
-  public static register(opts: KeycloakConnectOptions): DynamicModule {
+  public static register(): DynamicModule {
+
     return {
       module: KeycloakModule,
+      imports: [
+        ConfigModule
+      ],
       providers: [
-        {
-          provide: KEYCLOAK_CONNECT_OPTIONS,
-          useValue: opts,
-        },
         this.keycloakProvider,
       ],
       exports: [this.keycloakProvider],
@@ -27,8 +28,14 @@ export class KeycloakModule {
 
   private static keycloakProvider: Provider = {
     provide: KEYCLOAK_INSTANCE,
-    useFactory: (opts: KeycloakConnectOptions) => {
-      const keycloakOpts: any = opts;
+    useFactory: (config : ConfigService) => {
+      const keycloakOpts: any = {
+        authServerUrl: config.get('KEYCLOAK_SERVER_URL'),
+        realm: config.get('KEYCLOAK_REALM'),
+        clientId: config.get('KEYCLOAK_CLIENT'),
+        secret: config.get('KEKCLOAK_SECRET'),
+      }
+
       const keycloak: any = new Keycloak({}, keycloakOpts);
 
       // Access denied is called, add a flag to request so our resource guard knows
@@ -36,9 +43,9 @@ export class KeycloakModule {
         req.resourceDenied = true;
         next();
       };
-
       return keycloak;
     },
-    inject: [KEYCLOAK_CONNECT_OPTIONS],
+    inject: [ConfigService],
+
   };
 }
